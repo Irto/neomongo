@@ -1,0 +1,23 @@
+{
+    "name": "irto/neomongo",
+    "description": "Neo4j and MongoDB laravel driver provider",
+    "license": "GPL",
+    "authors": [
+        {
+            "name": "Israel Trindade",
+            "email": "irto@outlook.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "3.7.*"
+    },
+    "autoload": {
+        "psr-0": {
+            "Irto\\NeoMongo": "src/"
+        }
+    }
+}
