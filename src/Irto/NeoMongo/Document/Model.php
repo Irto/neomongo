@@ -128,7 +128,7 @@ Trait Model {
 	 * @return Bool|Array
 	 */
 	public function insert(){
-		$properties = $this->getProperties();
+		$properties = $this->getProperties(false);
 		$result = $this
 					->collection()
 					->insert($properties);
@@ -164,7 +164,7 @@ Trait Model {
 		$query = array();
 
 		if(is_null($update)){
-			foreach($this->getProperties() as $key => $value){
+			foreach($this->getProperties(false) as $key => $value){
 				$_query = $this->makeUpdateQuery($key, $value, $this->getProperty($key));
 
 				if(isset($query[$_query['key']]))
@@ -202,17 +202,5 @@ Trait Model {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Unset a property
-	 *
-	 * @param String $key
-	 */
-	public function unsetProperty($key){
-		parent::unsetProperty($key);
-
-		if(empty($this->original_props))
-			$this->pushProperty('$unset', [$key => 1]);
 	}
 }

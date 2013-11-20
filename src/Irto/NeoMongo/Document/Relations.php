@@ -34,4 +34,8 @@ trait Relations {
 
 		
 	}
+
+	public function performRelationsIndexes($relType){
+		return Relationship::performIndexes($this->collection(), $relType);
+	}
 }

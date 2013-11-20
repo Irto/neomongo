@@ -73,6 +73,32 @@ Class RelationshipTest extends PHPUnit_Framework_TestCase {
 		$result = $rel2->start_doc->collection()->findOne(['_id' => $rel2->start_doc->getProperty('_id')]);
 		$this->assertTrue(isset($result['__dbrel_know'][0]['status']) && $result['__dbrel_know'][0]['status'] == 'friend');
 		$this->assertTrue(isset($result['__dbrel_know'][0]['since']) && $result['__dbrel_know'][0]['since'] == $time);
+
+		return [$rel1, $rel2];
+	}
+
+	/**
+	 * @depends testCreateRelation
+	 */
+	public function testIndexes($rels){
+		list($rel1, $rel2) = $rels;
+
+		$rel1->end_doc->performRelationsIndexes('know');
+	}
+
+	/**
+	 * @depends testCreateRelation
+	 */
+	public function testRelationship($rels){
+		list($rel1, $rel2) = $rels;
+
+		$array = $rel1->getEndDocument(true);
+		$this->assertTrue(is_array($array));
+		$this->assertEquals('relationship', $array['status']);
+
+		$obj = $rel1->getEndDocument([]);
+		$this->assertTrue($obj instanceof RelDocument);
+		$this->assertEquals('Ciclano', $obj->getProperty('name'));
 	}
 
 	public static function tearDownAfterClass(){

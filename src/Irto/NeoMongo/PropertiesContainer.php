@@ -36,6 +36,16 @@ trait PropertiesContainer {
 	 * @param Mixed $value
 	 */
 	public function pushProperty($key, $value){
+		if($key[0] == '$'){
+			if($this->hasProperty($key, false))
+				$this->properties[$key][$value[0]] = $value[1];
+			else 
+				$this->properties[$key] = $value;
+
+			return;
+		}
+		
+
 		if(!is_array($this->getProperty($key))){
 			if(is_array($this->properties[$key]))
 				$this->properties[$key][] = $value;
@@ -81,12 +91,32 @@ trait PropertiesContainer {
 	}
 
 	/**
-	 * Return all properties as array to use an update query
+	 * Return all properties, or only $keys array passed, as array to use an update query
+	 * If is bool false $keys, will return special properties like $push and $unset,
+	 * used for make update operations.
+	 *
+	 * @param Array $keys [true]
 	 *
 	 * @return Array
 	 */
-	public function getProperties(){
+	public function getProperties($keys = true){
 		$properties = $this->preparePushedAttrs($this->properties);
+
+		if(is_array($keys)){
+			$_props = [];
+
+			$properties = array_merge($this->original_props, $properties);
+			$properties = $this->removeSpecialsProperties($properties);
+			foreach($keys as $key)
+				if(isset($properties[$key]))
+					$_props[$key] = $properties[$key];
+			
+			return $_props;
+		} elseif(is_bool($keys))
+			if($keys)
+				$properties = $this->removeSpecialsProperties(
+									array_merge($this->original_props, $properties));
+
 		return $properties;
 	}
 
@@ -106,6 +136,26 @@ trait PropertiesContainer {
 					$value = ['$each' => $value];
 			}
 		}
+
+		return $properties;
+	}
+
+	/**
+	 *
+	 *
+	 */
+	public function removeSpecialsProperties($properties){
+		if(isset($properties['$push']))
+			foreach($properties['$push'] as $key => $value)
+				$properties[$key] = array_merge($properties[$key], $value);
+
+
+		if(isset($properties['$unset']))
+			foreach ($properties['$unset'] as $key => $value)
+				unset($properties[$key]);
+
+		unset($properties['$push']);
+		unset($this->original_props['$unset']);
 
 		return $properties;
 	}
@@ -138,6 +188,9 @@ trait PropertiesContainer {
 	 */
 	public function unsetProperty($key){
 		unset($this->properties[$key]);
+
+		if(!empty($this->original_props))
+			$this->pushProperty('$unset', [$this->prefixProperty($key) => 1]);
 	}
 
 	/**
@@ -158,13 +211,6 @@ trait PropertiesContainer {
 		$this->original_props = array_merge($this->original_props, $this->properties);
 		$this->properties = array();
 
-		if(isset($this->original_props['$push'])){
-			foreach($this->original_props['$push'] as $key => $value)
-				$this->original_props[$key] = array_merge($this->original_props[$key], $value);
-
-			unset($this->original_props['$push']);
-		}
-
-		unset($this->original_props['$unset']);
+		$this->original_props = $this->removeSpecialsProperties($this->original_props);
 	}
 }

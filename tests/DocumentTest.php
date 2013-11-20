@@ -124,6 +124,7 @@ Class DocumentTest extends PHPUnit_Framework_TestCase {
 	 * @depends testUpdate
 	 */
 	public function testUpdateExtended($document){
+		$document->unsetProperty('onumber');
 		$document->pushProperty('array', 'updateExItem1');
 		$document->pushProperty('array', 'updateExItem2');
 		$this->assertTrue(in_array('updateExItem1', $document->getProperty('array', false)), 'has no updateExItem1 on array');
@@ -133,6 +134,7 @@ Class DocumentTest extends PHPUnit_Framework_TestCase {
 
 		$document->save();
 
+		$this->assertNull($document->getProperty('onumber'));
 		$this->assertTrue(in_array('updateExItem1', $document->getProperty('array')), 'has no updateExItem1 on array 2');
 		$this->assertTrue(in_array('updateExItem2', $document->getProperty('array')), 'has no updateExItem2 on array 2');
 		$this->assertCount(7, $document->getProperty('array'));
@@ -140,6 +142,7 @@ Class DocumentTest extends PHPUnit_Framework_TestCase {
 
 		$otrdoc = DBDocument::first($document->getProperty('_id'));
 
+		$this->assertNull($otrdoc->getProperty('onumber'));
 		$this->assertTrue(in_array('updateExItem1', $otrdoc->getProperty('array')), 'has no updateExItem1 on array 3');
 		$this->assertTrue(in_array('updateExItem2', $otrdoc->getProperty('array')), 'has no updateExItem2 on array 3');
 		$this->assertCount(7, $otrdoc->getProperty('array'));

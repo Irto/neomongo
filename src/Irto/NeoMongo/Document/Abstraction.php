@@ -12,9 +12,7 @@ Abstract Class Abstraction {
 	 */
 	use PropertiesContainer;
 	use Helper;
-	use Model {
-		Model::unsetProperty insteadof PropertiesContainer;
-	}
+	use Model;
 
 	/**
 	 * Document client
