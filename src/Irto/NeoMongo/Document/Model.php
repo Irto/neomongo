@@ -1,18 +1,12 @@
 <?php
 namespace Irto\NeoMongo\Document;
 
+use Irto\NeoMongo\Client;
+use Irto\NeoMongo\OdmCursor;
 use ReflectionClass;
 use MongoId;
 
 Trait Model {
-	/**
-	 * Index on document
-	 *
-	 * Exemple: array('_id' => ['unique'])
-	 *
-	 * @var Array
-	 */
-	protected $indexes = array();
 
 	/**
 	 * Common used attrs from database
@@ -22,7 +16,16 @@ Trait Model {
 	 *
 	 * @var Array
 	 */
-	protected $attributes = array();
+	protected static $attributes = array();
+	
+	/**
+	 * Index on document
+	 *
+	 * Exemple: array('_id' => ['unique'])
+	 *
+	 * @var Array
+	 */
+	protected $indexes = array();
 
 	/**
 	 * Create a new document, but don't save yet
@@ -45,7 +48,7 @@ Trait Model {
 	 *
 	 * @param Array $criteria
 	 * @param Array $projection
-	 *
+	 *	
 	 * @return Instanced this
 	 */
 	public static function find(Array $criteria, Array $projection){
@@ -69,12 +72,12 @@ Trait Model {
 	/**
 	 * Get first occurence of $criteria on collection
 	 *
-	 * @param Array $criteria
+	 * @param Mixed $criteria
 	 * @param Array $projection
 	 *
 	 * @return Instanced this
 	 */
-	public static function first($criteria, Array $projection){
+	public static function first($criteria, Array $projection = []){
 		// Can use a String or MongoID class to search an document
 		if($criteria instanceof MongoId || Client::isMongoId($criteria)){
 			$criteria = ['_id' => $criteria];
@@ -84,7 +87,10 @@ Trait Model {
 
 		$result = static::where( $criteria, $projection );
 
-        return $result->first();
+		if( $result->count() != 0 )
+        	return $result->first();
+
+        return null;
 	}
 
 	/**
@@ -105,9 +111,13 @@ Trait Model {
 		if(is_array($criteria)){
 			$projection = static::prepareProjection($projection);
 
-			$cursor =  new OdmCursor(
+			$instance = new static;
+			if(method_exists($instance, 'setup'))
+				$instance->setup();
+
+			$cursor = new OdmCursor(
                 	static::collection()->find( $criteria, $projection ),
-                	new static
+                	$instance
             	);
 
 			return $cursor;
@@ -123,11 +133,10 @@ Trait Model {
 	 * @throws Irto\NeoMongo\Exception\DuplicatedException
 	 */
 	public function save(){
-		if(empty($this->original_props))
-			return $this->insert();
-
-		if(!empty($this->properties))
+		if($this->hasUniqueIndex())
 			return $this->update();
+		else
+			return $this->insert();
 
 		return false;
 	}
@@ -139,9 +148,12 @@ Trait Model {
 	 * @return Bool|Array
 	 */
 	public function insert(){
+		$properties = $this->getProperties();
 		$result = $this
 					->collection()
-					->insert($this->getProperties());
+					->insert($properties);
+
+		$this->setProperty('_id', $properties['_id']);
 
 		if(isset($result['ok']) && $result['ok']){
 			$this->toggleProperties();
@@ -182,7 +194,6 @@ Trait Model {
 			}
 		} else // if update is setted will use it
 			$query = $update;
-		
 
 		$result = $this
 					->collection()
@@ -209,7 +220,7 @@ Trait Model {
 		if($key[0] == '$')
 			return [
 				'key' => $key,
-				'value' => $value
+				'value' => $new
 			];
 		
 
@@ -230,7 +241,7 @@ Trait Model {
 		if(is_numeric($old) && is_numeric($new))
 			return [
 				'key' => '$inc',
-				'value' => ['$inc' => [$key => ($old - $new) ]]
+				'value' => [$key => ($new - $old) ]
 			];
 		
 		return [
@@ -257,7 +268,7 @@ Trait Model {
 
 	/**
 	 * Return setted unique indexes with respective values,
-	 * if original setted true will only verify if 
+	 * if original is false, original and modified data will be verified, if is true, only original.
 	 *
 	 * @param Bool $original [false]
 	 *
@@ -272,6 +283,8 @@ Trait Model {
 
 			if($this->hasProperty($key, $original))
 				$indexes[$key] = $this->getProperty($key, $original);
+			else if ($this->hasProperty($key, !$original) && !$original)
+				$indexes[$key] = $this->getProperty($key, !$original);
 			else
 				unset($indexes[$key]);
 		}
@@ -287,7 +300,7 @@ Trait Model {
 	 * @return Bool
 	 */
 	public function hasUniqueIndex($original = false){
-		$indexes = $this->getUniqueIndex($original);
+		$indexes = $this->getUniqueIndexes($original);
 		if(is_array($indexes) && !empty($indexes))
 			return true;
 
@@ -335,10 +348,15 @@ Trait Model {
 		// If have only 0 values, will add to projection
 		// this->$attributes removing existing attr on $result
 		// bacause 0 is to don't return data
-		if(!in_array(1, $result) || empty($result) )
-			foreach($this->attributes as $key)
-				if(!array_key_exists($key, $this->attributes))
+		if( (!in_array(1, $result) || empty($result)) && !empty(static::$attributes) )
+			foreach(static::$attributes as $key)
+				if(!array_key_exists($key, static::$attributes))
 					$result[$key] = 1;
+
+		// Cannot mix including and excluding fields
+		if(in_array(1, $result))
+			foreach($result as $key => $include)
+				if(!$include) unset($result[$key]);
 
 		return $result;
 	}
@@ -353,7 +371,7 @@ Trait Model {
 	public function parseDocument(Array $document){
 		try {
 			// For each attribute, feed the model object
-            foreach ($doc as $field => $value)
+            foreach ($document as $field => $value)
                 $this->setOriginalProp($field, $value);
 
             // Returns success

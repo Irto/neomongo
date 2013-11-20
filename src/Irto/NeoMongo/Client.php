@@ -42,6 +42,7 @@ Class Client extends MongoClient {
 
 		try {
             $connection = new static($connection_string);
+
             if(isset($config['database']))
             	$connection->setDefaultDatabase($config['database']);
         } catch(\MongoConnectionException $e) {
@@ -79,6 +80,8 @@ Class Client extends MongoClient {
 	 */
 	public static function shareConnection(MongoClient $connection){
 		static::$shared_connection = $connection;
+
+		Model::setDb($connection->getDefaultDatabase());
 	}
 
 	/**
@@ -96,7 +99,7 @@ Class Client extends MongoClient {
 	}
 
 	/**
-	 * Returns $name database
+	 * Returns $name mongodb database from shared connection
 	 *
 	 * @param String $name
 	 *
@@ -104,20 +107,36 @@ Class Client extends MongoClient {
 	 */
 	public static function db($name){
 		$connection = static::getConnection();
-		return $connection->{$name};
+		return $connection->selectDB($name);
 	}
 
+	/**
+	 * Set default database name
+	 *
+	 * @param String $name
+	 */
 	public function setDefaultDatabase($name){
 		$this->default_database = $name;
-
-		Model::setDb($name);
 	}
 
+	/** 
+	 * Return default database, setted on client connection
+	 *
+	 * @return String|Null
+	 */
 	public function getDefaultDatabase(){
-		if(is_string($this->default_database))
-			return static::db($this->default_database);
+		return $this->default_database;
+	}
 
-		return null;
+	/**
+	 * Verify if the string is a mongoid
+	 *
+	 * @param String $string
+	 *
+	 * @return Bool
+	 */
+	public function isMongoId($string){
+		return (is_string($string) && strlen($string) == 24 && ctype_xdigit($string));
 	}
 
 }

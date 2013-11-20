@@ -23,6 +23,9 @@ trait PropertiesContainer {
 	 * @param Mixed $value
 	 */
 	public function setProperty($key, $value){
+		// convert to number, float or int
+		if(is_numeric($value)) $value = 0 + $value;
+
 		$this->properties[$key] = $value;
 	}
 
@@ -33,10 +36,22 @@ trait PropertiesContainer {
 	 * @param Mixed $value
 	 */
 	public function pushProperty($key, $value){
-		if(!isset($this->properties[$key]) || !is_array($this->properties[$key]))
-			$this->properties[$key] = [];
+		if(!is_array($this->getProperty($key))){
+			if(is_array($this->properties[$key]))
+				$this->properties[$key][] = $value;
+			else
+				$this->properties[$key] = [$value];
+
+			return;
+		}
+
+		if(!isset($this->properties['$push']))
+			$this->properties['$push'] = [];
 		
-		$this->properties[$key][] = $value;
+		if(isset($this->properties['$push'][$key]))
+			$this->properties['$push'][$key][] = $value;
+		else
+			$this->properties['$push'][$key] = [$value];
 	}
 
 	/**
@@ -50,22 +65,49 @@ trait PropertiesContainer {
 	 * @return Mixed
 	 */
 	public function getProperty($key, $original = true, $default = null){
-		if($this->hasProperty($key, $original))
-			return $this->properties[$key];
+		if($this->hasProperty($key, false) && !$original){
+			if(isset($this->properties['$push'][$key])) // verify if is a pushed property
+				return array_merge(
+						$this->getProperty($key, true, []),
+						$this->properties['$push'][$key]);
 
-		if($this->hasProperty($key, $original))
+			else return $this->properties[$key]; // if don't use default return 
+		}
+
+		if($this->hasProperty($key, true) && $original) // if want original
 			return $this->original_props[$key];
 
 		return $default;
 	}
 
 	/**
-	 * Return al properties as array
+	 * Return all properties as array to use an update query
 	 *
 	 * @return Array
 	 */
 	public function getProperties(){
-		return $this->properties;
+		$properties = $this->preparePushedAttrs($this->properties);
+		return $properties;
+	}
+
+	/**
+	 * Organize itens to be pushed on collection
+	 *
+	 * @param Array $properties
+	 *
+	 * @return Array
+	 */
+	private function preparePushedAttrs($properties){
+		if(isset($properties['$push'])){
+			foreach($properties['$push'] as $key => &$value){
+				if(is_array($value) && count($value) == 1)
+					$value = $value[0];
+				else
+					$value = ['$each' => $value];
+			}
+		}
+
+		return $properties;
 	}
 
 	/**
@@ -79,11 +121,12 @@ trait PropertiesContainer {
 	 * @return Bool
 	 */
 	public function hasProperty($key, $original = true){
-		if(isset($this->properties[$key]) && !$original)
+		switch(true){
+		case (isset($this->properties[$key]) && !$original):
+		case (isset($this->properties['$push'][$key]) && !$original):
+		case (isset($this->original_props[$key]) && $original):
 			return true;
-
-		if(isset($this->original_props[$key]))
-			return true;
+		}
 
 		return false;
 	}
@@ -111,8 +154,17 @@ trait PropertiesContainer {
 	 * Toggle to modified properties to original properties
 	 * and set empty modified properties
 	 */
-	protected function toggleProperties(){
+	protected function toggleProperties(){	
 		$this->original_props = array_merge($this->original_props, $this->properties);
 		$this->properties = array();
+
+		if(isset($this->original_props['$push'])){
+			foreach($this->original_props['$push'] as $key => $value)
+				$this->original_props[$key] = array_merge($this->original_props[$key], $value);
+
+			unset($this->original_props['$push']);
+		}
+
+		unset($this->original_props['$unset']);
 	}
 }

@@ -11,8 +11,10 @@
          syntaxCheck="false"
 >
     <testsuites>
-        <testsuite name="Package Test Suite">
-            <directory>./tests/</directory>
+        <testsuite name="NeoMongo_Common">
+            <file>./tests/ClientTest.php</file>
+            <file>./tests/DocumentTest.php</file>
+            <file>./tests/RelationshipTest.php</file>
         </testsuite>
     </testsuites>
 </phpunit>

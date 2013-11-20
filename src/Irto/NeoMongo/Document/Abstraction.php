@@ -3,6 +3,7 @@ namespace Irto\NeoMongo\Document;
 
 use Irto\NeoMongo\Client;
 use Irto\NeoMongo\PropertiesContainer;
+use MongoDB;
 
 Abstract Class Abstraction {
 
@@ -70,10 +71,13 @@ Abstract Class Abstraction {
      * @return MongoDB
      */
 	public static function db(){
+		if(isset(static::$database) && static::$database instanceof MongoDB)
+			return static::$database;
+
 		if(is_null(static::$client))
 			return Client::db(static::$database);
 
-		return static::client()->selectDb(static::$database);
+		return static::client()->selectDB(static::$database);
 	}
 
 	/**
@@ -82,7 +86,7 @@ Abstract Class Abstraction {
      * @return MongoDB collection
      */
 	public static function collection(){
-		return static::db()->{static::$collection};
+		return static::db()->selectCollection(static::$collection);
 	}
 
 	public function __construct(){
