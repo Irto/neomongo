@@ -1,7 +1,8 @@
 {
     "name": "irto/neomongo",
-    "description": "Neo4j and MongoDB laravel driver provider",
-    "license": "GPL",
+    "description": "NeoMongo provides a friendly implementation for working with MongoDB and relationships.",
+    "keywords": ["mongodb", "odm", "nosql", "relational", "relationships"],
+    "license": "MIT",
     "authors": [
         {
             "name": "Israel Trindade",
