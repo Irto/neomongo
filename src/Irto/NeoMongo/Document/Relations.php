@@ -1,7 +1,7 @@
 <?php
 namespace Irto\NeoMongo\Document;
 
-use Irto\NeoMongo\Relashionship\Instance as Relashionship;
+use Irto\NeoMongo\Relationship\Instance as Relationship;
 
 trait Relations {
 	/**
@@ -10,21 +10,19 @@ trait Relations {
 	 * @param Use Document $doc
 	 * @param String $type
 	 *
-	 * @return Bool
+	 * @return Irto\NeoMongo\Relationship\Instance|Bool
 	 */
 	public function relateTo($doc, $type){
-		if( !in_array('Irto\NeoMongo\Document\Model', class_uses($doc)) ) return false;
-
 		if(class_exists($type))
-			$relashionship = $type::make($this, $doc);
+			$relationship = $type::make($this, $doc);
 		else
-			$relashionship = Relashionship::make($this, $doc, $type);
+			$relationship = Relationship::make($this, $doc, $type);
 
-		return $relashionship;
+		return $relationship;
 	}
 
 	/**
-	 * Return all relashionships. 
+	 * Return all relationships. 
 	 * $all can be string to filter by type, or bool to get all.
 	 * 
 	 *
@@ -32,8 +30,7 @@ trait Relations {
 	 * @param
 	 *
 	 */
-	public function getRelationships($all = true, $direction = Relashionship::DIRECTION_ALL){
-		if( !in_array('Irto\NeoMongo\Document\Model', class_uses($doc)) ) return false;
+	public function getRelationships($all = true, $direction = Relationship::DIRECTION_ALL){
 
 		
 	}

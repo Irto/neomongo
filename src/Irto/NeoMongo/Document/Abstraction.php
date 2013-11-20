@@ -83,10 +83,19 @@ Abstract Class Abstraction {
 	/**
      * Returns the Mongo collection object
      *
-     * @return MongoDB collection
+     * @return MongoCollection
      */
 	public static function collection(){
-		return static::db()->selectCollection(static::$collection);
+		return static::db()->selectCollection(static::getCollection());
+	}
+
+	/**
+     * Returns the Mongo collection name
+     *
+     * @return String
+     */
+	public static function getCollection(){
+		return static::$collection;
 	}
 
 	public function __construct(){
