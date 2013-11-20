@@ -5,7 +5,7 @@ NeoMongo provides a friendly implementation for working with MongoDB and relatio
 
 ## Install
 ### Using composer
-1. From the command line `echo '{"require":{"everyman/neo4jphp":"dev-master"}}' > composer.json && composer install`
+1. From the command line `echo '{"require":{"irto/neomongo":"dev-master"}}' > composer.json && composer install`
 2. In your PHP script `require("vendor/autoload.php");`
 
 ## Contributions
