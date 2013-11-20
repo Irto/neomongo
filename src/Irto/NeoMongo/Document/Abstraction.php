@@ -11,6 +11,7 @@ Abstract Class Abstraction {
 	 * Loads Document model functions and properties container
 	 */
 	use PropertiesContainer;
+	use Helper;
 	use Model {
 		Model::unsetProperty insteadof PropertiesContainer;
 	}

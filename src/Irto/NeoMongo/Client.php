@@ -139,4 +139,12 @@ Class Client extends MongoClient {
 		return (is_string($string) && strlen($string) == 24 && ctype_xdigit($string));
 	}
 
+	public static function __callStatic($name, $args){
+		$name = substr($name, 1);
+		if(method_exists(static::$shared_connection, $name))
+			return call_user_method_array($name, static::$shared_connection, $args);
+
+		trigger_error('Method ' . $name . ' dont exists on Client or in Shared Connection.');
+	}
+
 }

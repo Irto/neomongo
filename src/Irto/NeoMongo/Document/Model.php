@@ -3,29 +3,9 @@ namespace Irto\NeoMongo\Document;
 
 use Irto\NeoMongo\Client;
 use Irto\NeoMongo\OdmCursor;
-use ReflectionClass;
 use MongoId;
 
 Trait Model {
-
-	/**
-	 * Common used attrs from database
-	 *
-	 * If it's not empty and on find don't use projection, 
-	 * will return only this keys from document.
-	 *
-	 * @var Array
-	 */
-	protected static $attributes = array();
-	
-	/**
-	 * Index on document
-	 *
-	 * Exemple: array('_id' => ['unique'])
-	 *
-	 * @var Array
-	 */
-	protected $indexes = array();
 
 	/**
 	 * Create a new document, but don't save yet
@@ -178,12 +158,12 @@ Trait Model {
 		// only can update if it's has a unique index for match on update query.
 		if(!$this->hasUniqueIndex()) return false;
 
-		$_criteria = $this->getUniqueIndexes();
-		$criteria = array_merge($_criteria, $criteria); // merge criteria with unique indexes
+		$_criteria = $this->getUniqueIndex();
+		$criteria = array_merge($_criteria, $criteria); // merge criteria with unique index
 
 		$query = array();
 
-		if(empty($update)){
+		if(is_null($update)){
 			foreach($this->getProperties() as $key => $value){
 				$_query = $this->makeUpdateQuery($key, $value, $this->getProperty($key));
 
@@ -208,55 +188,13 @@ Trait Model {
 	}
 
 	/**
-	 * Genarate a query with best MongoDB operator to update 
-	 *
-	 * @param String $key
-	 * @param Mixed $new
-	 * @param Bool $old
-	 *
-	 * @return Array
-	 */
-	protected function makeUpdateQuery($key, $new, $old = null){
-		if($key[0] == '$')
-			return [
-				'key' => $key,
-				'value' => $new
-			];
-		
-
-		if(is_null($old)){
-			// if is array will push itens on $key
-			if(is_array($new))
-				return [
-					'key' => '$push',
-					'value' => [$key => ['$each' => $new]]
-				];
-
-			return [
-				'key' => '$set',
-				'value' => [$key => $new]];
-		}
-
-		// use $inc operator to update if $new and $old are integer
-		if(is_numeric($old) && is_numeric($new))
-			return [
-				'key' => '$inc',
-				'value' => [$key => ($new - $old) ]
-			];
-		
-		return [
-			'key' => '$set',
-			'value' => [$key => $new]];
-	}
-
-	/**
 	 * Remove document from collection
 	 *
 	 * @return Bool
 	 */
 	public function delete(){
 		if($this->hasUniqueIndex()){
-			$data = $this->getUniqueIndexes();
+			$data = $this->getUniqueIndex();
 
 			return $this
 					->collection()
@@ -264,124 +202,6 @@ Trait Model {
 		}
 
 		return false;
-	}
-
-	/**
-	 * Return setted unique indexes with respective values,
-	 * if original is false, original and modified data will be verified, if is true, only original.
-	 *
-	 * @param Bool $original [false]
-	 *
-	 * @return Array
-	 */
-	public function getUniqueIndexes($original = false){
-		$_id = array('_id' => ['unique']);
-		$indexes = array_merge($this->indexes, $_id);
-
-		foreach($indexes as $key => $types){
-			if(!in_array('unique', $types)) unset($indexes[$key]);
-
-			if($this->hasProperty($key, $original))
-				$indexes[$key] = $this->getProperty($key, $original);
-			else if ($this->hasProperty($key, !$original) && !$original)
-				$indexes[$key] = $this->getProperty($key, !$original);
-			else
-				unset($indexes[$key]);
-		}
-
-		return $indexes;
-	}
-
-	/**
-	 * Return if has setted unique indexes
-	 *
-	 * @param Bool $original [false]
-	 *
-	 * @return Bool
-	 */
-	public function hasUniqueIndex($original = false){
-		$indexes = $this->getUniqueIndexes($original);
-		if(is_array($indexes) && !empty($indexes))
-			return true;
-
-		return false;
-	}
-
-	/**
-     * Prepare attributes to be used in MongoDb.
-     * especially the _id.
-     *
-     * @param array $attr
-     * @return array
-     */
-    protected static function prepareMongoAttributes($attr){
-        // Translate the primary key field into _id
-        if( isset($attr['_id']) ) {
-            // If its a 24 digits hexadecimal, then it's a MongoId
-            if (Client::isMongoId($attr['_id'])) {
-                $attr['_id'] = new \MongoId( $attr['_id'] );
-            } elseif(is_numeric($attr['_id'])) {
-                $attr['_id'] = (int)$attr['_id'];
-            } else {
-                $attr['_id'] = $attr['_id'];
-            }
-        }
-
-        return $attr;
-    }
-
-	/**
-	 * Prepare array to use as projection on MongoDB query
-	 *
-	 * @param Array $array
-	 *
-	 * @return Array;
-	 */
-	protected static function prepareProjection(Array $array){
-		$result = array();
-
-		foreach($array as $key => $value){
-			if(is_numeric($key)) $result[$value] = 1;
-			else $result[$key] = $value;
-		}
-
-		// If have only 0 values, will add to projection
-		// this->$attributes removing existing attr on $result
-		// bacause 0 is to don't return data
-		if( (!in_array(1, $result) || empty($result)) && !empty(static::$attributes) )
-			foreach(static::$attributes as $key)
-				if(!array_key_exists($key, static::$attributes))
-					$result[$key] = 1;
-
-		// Cannot mix including and excluding fields
-		if(in_array(1, $result))
-			foreach($result as $key => $include)
-				if(!$include) unset($result[$key]);
-
-		return $result;
-	}
-
-	/**
-	 * Parse a given array to model properties
-	 *
-	 * @param Array $document
-	 *
-	 * @return Bool
-	 */
-	public function parseDocument(Array $document){
-		try {
-			// For each attribute, feed the model object
-            foreach ($document as $field => $value)
-                $this->setOriginalProp($field, $value);
-
-            // Returns success
-            return true;
-        } catch( Exception $e ){
-            // Returns fail;
-            return false;
-        }
-
-        return false;
 	}
 
 	/**

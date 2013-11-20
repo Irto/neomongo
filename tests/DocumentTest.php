@@ -52,6 +52,9 @@ Class DocumentTest extends PHPUnit_Framework_TestCase {
 		$this->assertNotNull($document->getProperty('_id'), 'don\'t have id');
 		$this->assertNotNull($document->getProperty('name'), 'saved properties must to be original');
 
+		$result = $document->collection()->findOne(['_id' => $document->getProperty('_id')]);
+		$this->assertTrue(isset($result['name']) && $result['name'] == 'Fulano da Silva');
+
 		return $document;
 	}
 
