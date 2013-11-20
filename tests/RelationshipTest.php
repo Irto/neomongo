@@ -27,6 +27,7 @@ Class RelationshipTest extends PHPUnit_Framework_TestCase {
 		$relationship = $doc1->relateTo($doc2, 'know');
 
 		$this->assertTrue($relationship instanceof Irto\NeoMongo\Relationship\Instance);
+		$this->assertEquals('relCollection', $relationship->getProperty('_collection'));
 	}
 }
 
