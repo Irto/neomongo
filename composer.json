@@ -1,7 +1,8 @@
 {
     "name": "irto/neomongo",
+    "type": "library",
     "description": "NeoMongo provides a friendly implementation for working with MongoDB and relationships.",
-    "keywords": ["mongodb", "odm", "nosql", "relational", "relationships"],
+    "keywords": ["mongodb", "odm", "nosql", "database", "relational", "relationships"],
     "license": "MIT",
     "authors": [
         {

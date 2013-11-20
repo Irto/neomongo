@@ -83,7 +83,7 @@ Class RelationshipTest extends PHPUnit_Framework_TestCase {
 	public function testIndexes($rels){
 		list($rel1, $rel2) = $rels;
 
-		$rel1->end_doc->performRelationsIndexes('know');
+		$rel1->end_doc->performRelationIndexes('know');
 	}
 
 	/**
