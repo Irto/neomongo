@@ -2,6 +2,7 @@
 
 use Irto\NeoMongo\Document\Abstraction as Model;
 use Irto\NeoMongo\Document\Relations;
+use Irto\NeoMongo\Relationship\Instance as Relationship;
 use Irto\NeoMongo\Client;
 
 Class RelationshipTest extends PHPUnit_Framework_TestCase {
@@ -67,7 +68,6 @@ Class RelationshipTest extends PHPUnit_Framework_TestCase {
 
 		$time = time();
 		$rel2->setProperty('since', $time);
-
 		$rel2->save();
 
 		$result = $rel2->start_doc->collection()->findOne(['_id' => $rel2->start_doc->getProperty('_id')]);
@@ -84,6 +84,7 @@ Class RelationshipTest extends PHPUnit_Framework_TestCase {
 		list($rel1, $rel2) = $rels;
 
 		$rel1->end_doc->performRelationIndexes('know');
+
 	}
 
 	/**
@@ -99,10 +100,6 @@ Class RelationshipTest extends PHPUnit_Framework_TestCase {
 		$obj = $rel1->getEndDocument([]);
 		$this->assertTrue($obj instanceof RelDocument);
 		$this->assertEquals('Ciclano', $obj->getProperty('name'));
-	}
-
-	public static function tearDownAfterClass(){
-		Client::_dropDb('test');
 	}
 }
 

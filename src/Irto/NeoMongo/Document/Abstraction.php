@@ -2,6 +2,7 @@
 namespace Irto\NeoMongo\Document;
 
 use Irto\NeoMongo\Client;
+use Irto\NeoMongo\Collection as MongoCollection;
 use Irto\NeoMongo\PropertiesContainer;
 use MongoDB;
 
@@ -15,14 +16,14 @@ Abstract Class Abstraction {
 	use Model;
 
 	/**
-	 * Document client
+	 * This collection database client, null will get shared connection on Irto\NeoMongo\Client
 	 *
 	 * @var MongoClient
 	 */
 	protected static $client = null;
 
 	/**
-	 * Name of collection on database
+	 * Name of collection database on client
 	 *
 	 * @var String
 	 */
@@ -85,7 +86,7 @@ Abstract Class Abstraction {
      * @return MongoCollection
      */
 	public static function collection(){
-		return static::db()->selectCollection(static::getCollection());
+		return new MongoCollection(static::db(), static::getCollection());
 	}
 
 	/**

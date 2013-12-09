@@ -2,11 +2,14 @@
 namespace Irto\NeoMongo\Relationship;
 
 use Irto\NeoMongo\Relationship\Instance as Relationship;
+use Irto\NeoMongo\Relationship\Query\Instance as RelQuery;
 use MongoId;
 
 trait Model {
 
 	/**
+	 * Save status of this relationship, if is saved (not new) or not (new).
+	 *
 	 * @var Bool
 	 */
 	private $new;
@@ -46,20 +49,62 @@ trait Model {
 	}
 
 	/**
-	 * This relationship type
-	 *
-	 * @var String
+	 * Shortcut to Static::first
 	 */
-	protected $type = null;
+	public static function findOne(){
+		return forward_static_call_array('first', func_get_args());
+	}
 
 	/**
 	 *
 	 *
+	 *
+	 *
 	 */
-	public function __construct($startDoc, $endDoc){
-		$this->start_doc = $startDoc;
+	public static function first(){
+	}
 
-		$this->setEndDocument($endDoc);
+	/**
+	 *
+	 *
+	 *
+	 *
+	 */
+	public static function find(){
+	}
+
+	/**
+	 *
+	 *
+	 *
+	 *
+	 */
+	public static function where($criteria, Array $projection){
+		$relationship = new static();
+		if(!empty($relationship->getType()))
+			$criteria['$type'] = $relationship->getType();
+
+		$query = New RelQuery($criteria);
+		$document = $query->execute($projection)->current();
+
+		$relationship->setType($criteria['$type']);
+
+		$data = $document->getProperty(Relationship::REL_PREFIX . $criteria['$type']);
+		$relationship->parseData($data[0], $document);
+
+		return $relationship;
+	}
+
+	/**
+	 * Start a new Relationship instance
+	 *
+	 */
+	private function __construct($startDoc = null, $endDoc = null){
+		if(!is_null($startDoc))
+			$this->start_doc = $startDoc;
+
+		if(!is_null($endDoc))
+			$this->setEndDocument($endDoc);
 
 		$this->indexes[] = [['_id', '_collection'], 'unique'];
 		$this->indexes['_id'] = 'none';
@@ -82,8 +127,6 @@ trait Model {
 			$this->setProperty('_collection', $endDoc[1]);
 			$this->setProperty('_class', $endDoc[2]);
 		}
-
-		$this->end_doc = $endDoc;
 	}
 
 	/** 
@@ -110,24 +153,6 @@ trait Model {
 		}
 
 		return $this->getProperties($projection);
-	}
-
-	/**
-	 * Set type of relationship
-	 *
-	 * @param String $type
-	 */
-	public function setType($type){
-		$this->type = $type;
-	}
-
-	/**
-	 * Return type of relationship
-	 *
-	 * @return String
-	 */
-	public function getType(){
-		return strtolower($this->type);
 	}
 
 	/**
@@ -208,7 +233,10 @@ trait Model {
 	 * @param Object $startDoc
 	 * @param Array $dbrelData
 	 */
-	public function parseDocument($startDoc, Array $dbrelData){
+	public function parseData(Array $dbrelData, $startDoc = null){
+		if(!is_null($startDoc))
+			$this->start_doc = $startDoc;
+
 		// if it's a mongoid string
 		if(!(is_object($dbrelData['_id']) && $dbrelData['_id'] instanceof MongoId )
 			&& Client::idMongoId($dbrelData['_id']))
@@ -258,12 +286,9 @@ trait Model {
 	public function __call($name, $args){
 		switch($name){
 			case 'setEndDocument':
-				if($this->hasUniqueIndex()) return call_user_method_array('setEndDocument', $this, $args);
+				if(!$this->isNew()) return call_user_method_array('setEndDocument', $this, $args);
 		}
 
-		if(method_exists(parent, '__call'))
-			return parent::__get($name, $args);
-
-		trigger_error('The method ' . $name . ' not exists, or are access not allowed.');
+		trigger_error('The method ' . $name . ' in trait Irto\NeoMongo\Relationship\Model not exists, or access are not allowed.');
 	}
 }

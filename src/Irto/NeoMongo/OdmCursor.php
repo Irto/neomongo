@@ -35,6 +35,7 @@ Class OdmCursor implements Iterator {
 	 */
     public function __construct( $cursor, $model ){
 		$this->cursor = $cursor;
+		$this->cursor->rewind();
 
 		if(is_string($model))
 			$this->model = new $model;

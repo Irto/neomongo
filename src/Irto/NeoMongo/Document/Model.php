@@ -45,8 +45,8 @@ Trait Model {
 	/**
 	 * Shortcut to static::first
 	 */
-	public static function findOne($criteria, Array $projection){
-		return static::first($criteria, $projection);
+	public static function findOne(){
+		return forward_static_call_array('first', func_get_args());
 	}
 
 	/**
@@ -65,7 +65,7 @@ Trait Model {
 
 		$criteria = static::prepareMongoAttributes($criteria);
 
-		$result = static::where( $criteria, $projection );
+	 	$result = static::where( $criteria, $projection );
 
 		if( $result->count() != 0 )
         	return $result->first();
